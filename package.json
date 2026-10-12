@@ -1,0 +1,74 @@
+{
+  "name": "@jehu/astro-ai-disclosure",
+  "version": "0.1.0",
+  "description": "Machine-readable and visible disclosure for AI-generated images in Astro: keeps XMP through image optimisation, carries C2PA source types into every derivative, and renders a content-credentials badge.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./image-service": {
+      "types": "./dist/image-service.d.ts",
+      "default": "./dist/image-service.js"
+    },
+    "./credentials": {
+      "types": "./dist/credentials.d.ts",
+      "default": "./dist/credentials.js"
+    },
+    "./c2pa": {
+      "types": "./dist/c2pa.d.ts",
+      "default": "./dist/c2pa.js"
+    },
+    "./components/AiBadge.astro": "./components/AiBadge.astro"
+  },
+  "bin": {
+    "astro-ai-disclosure": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "components"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "ai-generated",
+    "iptc",
+    "xmp",
+    "c2pa",
+    "content-credentials",
+    "eu-ai-act"
+  ],
+  "author": "Marco Michely",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jehu/astro-ai-disclosure.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "peerDependencies": {
+    "astro": "^7.0.0",
+    "sharp": "^0.35.5"
+  },
+  "dependencies": {
+    "aeo-image": "^1.2.0",
+    "cbor-x": "^1.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "astro": "^7.3.8",
+    "sharp": "^0.35.5",
+    "typescript": "^5.9.3"
+  }
+}
