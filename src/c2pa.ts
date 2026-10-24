@@ -179,6 +179,103 @@ function isoWhen(value: unknown): string | undefined {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
   return undefined;
 }
+
+/** One parsed DER TLV; `children` is set for constructed tags (bit 0x20). */
+interface DerValue {
+  tag: number;
+  value: Uint8Array;
+  children?: DerValue[];
+}
+
+/** Minimal DER reader: one TLV at `offset`, guarding every length access. */
+function derValue(bytes: Uint8Array, offset = 0): { value: DerValue; next: number } | undefined {
+  if (offset + 2 > bytes.length) return undefined;
+  const tag = bytes[offset++];
+  let length = bytes[offset++];
+  if (length & 0x80) {
+    const count = length & 0x7f;
+    if (count === 0 || count > 4 || offset + count > bytes.length) return undefined;
+    length = 0;
+    for (let i = 0; i < count; i++) length = (length << 8) | bytes[offset++];
+  }
+  const end = offset + length;
+  if (end > bytes.length) return undefined;
+  const node: DerValue = { tag, value: bytes.subarray(offset, end) };
+  if (tag & 0x20) {
+    const children: DerValue[] = [];
+    for (let childOffset = offset; childOffset < end; ) {
+      const child = derValue(bytes, childOffset);
+      if (!child) return undefined;
+      children.push(child.value);
+      childOffset = child.next;
+    }
+    node.children = children;
+  }
+  return { value: node, next: end };
+}
+
+function childAt(value: DerValue | undefined, index: number): DerValue | undefined {
+  return value?.children?.[index];
+}
+
+/** ASN.1 GeneralizedTime (RFC 3161 form: `YYYYMMDDHHMMSS[.f…]Z`) to ISO 8601. */
+export function isoGeneralizedTime(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const match = /^([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})(?:\.([0-9]+))?Z$/.exec(value);
+  if (!match) return undefined;
+  const milliseconds = (match[7] ?? '').slice(0, 3).padEnd(3, '0');
+  const date = new Date(
+    `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}.${milliseconds}Z`,
+  );
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== Number(match[1]) ||
+    date.getUTCMonth() !== Number(match[2]) - 1 ||
+    date.getUTCDate() !== Number(match[3]) ||
+    date.getUTCHours() !== Number(match[4]) ||
+    date.getUTCMinutes() !== Number(match[5]) ||
+    date.getUTCSeconds() !== Number(match[6])
+  ) {
+    return undefined;
+  }
+  return date.toISOString();
+}
+
+/**
+ * `genTime` of the RFC 3161 TimeStampToken carried in `token`.
+ *
+ * Parsing is deliberately narrow: only the encapsulated TSTInfo is read, not
+ * the CMS signature (its validity is the TSA's problem, not ours).
+ */
+export function rfc3161GenTime(token: Uint8Array): string | undefined {
+  const contentInfo = derValue(token)?.value;
+  const signedData = childAt(childAt(contentInfo, 1), 0);
+  const encapContentInfo = childAt(signedData, 2);
+  const content = childAt(childAt(encapContentInfo, 1), 0);
+  const tstInfo = content?.tag === 0x04 ? derValue(content.value)?.value : undefined;
+  const genTime = childAt(tstInfo, 4);
+  return genTime?.tag === 0x18 ? isoGeneralizedTime(Buffer.from(genTime.value).toString('latin1')) : undefined;
+}
+
+/** `sigTst2` timestamp of the manifest's COSE signature, when present. */
+function signatureTimestamp(stream: Uint8Array, manifest: Unit): string | undefined {
+  const signature = first(stream, manifest.body, manifest.end, (label) => label.includes('c2pa.signature'));
+  const payload = signature && findCbor(stream, signature.body, signature.end);
+  if (!payload) return undefined;
+  try {
+    // cbor-x returns tagged values (COSE_Sign1 is tag 18) as `{ tag, value }`.
+    const decoded = new Decoder({ mapsAsObjects: true }).decode(Buffer.from(payload));
+    const cose = decoded && typeof decoded === 'object' && 'value' in decoded ? decoded.value : decoded;
+    const unprotected = Array.isArray(cose) ? cose[1] : undefined;
+    const token =
+      unprotected && typeof unprotected === 'object'
+        ? (unprotected as Record<string, { tstTokens?: { val?: unknown }[] }>).sigTst2?.tstTokens?.[0]?.val
+        : undefined;
+    return token instanceof Uint8Array ? rfc3161GenTime(token) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 function agentName(agent: unknown): string | undefined {
   if (typeof agent === 'string') return agent || undefined;
   if (agent !== null && typeof agent === 'object' && 'name' in agent) {
@@ -259,7 +356,7 @@ function readStream(stream: Uint8Array): C2paInfo | null {
     const description =
       typeof created.description === 'string' ? created.description.match(/^Created by (.+?)\.?$/)?.[1] : undefined;
     info.creator = agentName(created.softwareAgent) ?? description;
-    info.createdAt = isoWhen(created.when);
+    info.createdAt = isoWhen(created.when) ?? signatureTimestamp(stream, manifest);
   }
   return info;
 }
@@ -292,3 +389,4 @@ function digitalSourceTypeOf(action: Record<string, unknown>): string | undefine
   }
   return undefined;
 }
+
