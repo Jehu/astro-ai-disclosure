@@ -1,6 +1,6 @@
 {
   "name": "@jehu/astro-ai-disclosure",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Machine-readable and visible disclosure for AI-generated images in Astro: keeps XMP through image optimisation, carries C2PA source types into every derivative, and renders a content-credentials badge.",
   "type": "module",
   "exports": {
