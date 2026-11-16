@@ -136,6 +136,7 @@ accepted by `tag`; it could contain real photos.
 
 ```bash
 npx astro-ai-disclosure tag image.png --system "Google Gemini" --description "AI illustration"
+npx astro-ai-disclosure tag image.png --source-type compositeWithTrainedAlgorithmicMedia --system "Google Gemini"
 npx astro-ai-disclosure tag --json ai-images.json --system "Google Gemini"
 npx astro-ai-disclosure check image.png
 npx astro-ai-disclosure check src/assets/ai
@@ -145,7 +146,13 @@ npx astro-ai-disclosure check src/assets/ai
 JPEG, PNG, WebP and AVIF. `tag` skips signed C2PA files; any byte change could
 invalidate their signature. `check` is read-only, recursively inspects an
 explicit directory, and exits nonzero for missing disclosure or no matched
-images. Unknown options fail instead of being ignored.
+images.
+`--source-type` takes a short name from `DIGITAL_SOURCE_TYPE`
+(`trainedAlgorithmicMedia` — the default, `compositeWithTrainedAlgorithmicMedia`,
+`compositeSynthetic`, `digitalCapture`) or a full
+`http://cv.iptc.org/newscodes/digitalsourcetype/…` URI; unknown values fail.
+Note `check` reports AI credentials only, so a `digitalCapture` tag is not
+counted as disclosure. Unknown options fail instead of being ignored.
 
 ## C2PA sources
 

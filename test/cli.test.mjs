@@ -134,6 +134,24 @@ test('unknown flags and missing flag values are rejected with exit 2', async () 
   }
 });
 
+test('tag --source-type writes the requested IPTC type and rejects unknown values', async () => {
+  const file = await fixtureCopy('plain.png');
+  const tagged = await run('node', [cli, 'tag', file, '--source-type', 'compositeSynthetic']);
+  assert.match(tagged.stdout, /tagged/);
+  const { packetDigitalSourceType } = await import('../dist/xmp.js');
+  const packet = (await import('../dist/xmp.js')).findXmpPacket(await readFile(file));
+  assert.equal(
+    packetDigitalSourceType(packet.text),
+    'http://cv.iptc.org/newscodes/digitalsourcetype/compositeSynthetic',
+  );
+
+  await assert.rejects(run('node', [cli, 'tag', file, '--source-type', 'trainedAlgoritmicMedia']), (error) => {
+    assert.equal(error.code, 2);
+    assert.match(error.stderr, /unknown --source-type/);
+    return true;
+  });
+});
+
 test('zero matched files fails instead of succeeding', async () => {
   const dir = await tmp();
   await assert.rejects(run('node', [cli, 'check', dir]), (error) => {
