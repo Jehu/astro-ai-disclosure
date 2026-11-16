@@ -20,13 +20,14 @@ export const IPTC_DIGITAL_SOURCE_TYPE_PREFIX = 'http://cv.iptc.org/newscodes/dig
 
 
 /**
- * True for IPTC digital source types that denote AI involvement
- * (`trainedAlgorithmicMedia`, `compositeWithTrainedAlgorithmicMedia`, …).
- * `digitalCapture` and plain `composite` are not AI statements by themselves.
+ * True for IPTC digital source types that denote AI or synthetic involvement
+ * (`trainedAlgorithmicMedia`, `compositeWithTrainedAlgorithmicMedia`,
+ * `compositeSynthetic`). `digitalCapture` and plain `composite` are not AI
+ * statements by themselves.
  */
 export function isAiSourceType(value: string): boolean {
   const local = value.slice(Math.max(value.lastIndexOf('/'), value.lastIndexOf('#')) + 1);
-  return local.includes('AlgorithmicMedia');
+  return local.includes('AlgorithmicMedia') || local === 'compositeSynthetic';
 }
 
 export interface C2paInfo {

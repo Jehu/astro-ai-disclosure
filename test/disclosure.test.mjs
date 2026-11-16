@@ -36,6 +36,7 @@ test('only AI source types qualify; digitalCapture and plain composites do not',
   assert.ok(
     isAiSourceType('http://cv.iptc.org/newscodes/digitalsourcetype/compositeWithTrainedAlgorithmicMedia'),
   );
+  assert.ok(isAiSourceType('http://cv.iptc.org/newscodes/digitalsourcetype/compositeSynthetic'));
   assert.equal(isAiSourceType('http://cv.iptc.org/newscodes/digitalsourcetype/digitalCapture'), false);
   assert.equal(isAiSourceType(COMPOSITE), false);
 });
