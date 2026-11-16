@@ -108,6 +108,8 @@ const credentials = await readAiCredentials(photo);
       title: 'Inhaltsnachweise',
       close: 'Schließen',
       intro: 'KI-generierte Illustration, kein Foto einer echten Patientin.',
+      introGenerated: 'KI-generierte Illustration, kein Foto einer echten Patientin.',
+      introModified: 'Foto mit KI-generierten Bildanteilen bearbeitet.',
       createdWith: 'Erstellt mit',
       createdOn: 'Erstellt am',
       footer: 'Maschinenlesbare Herkunftsangabe im Bild eingebettet.',
@@ -128,9 +130,12 @@ const credentials = await readAiCredentials(photo);
 ```
 
 The component renders nothing for `null`. Copy is supplied by the project,
-so any i18n library works. A small bundled script handles opening, closing,
-Escape and focus return; no Alpine/React runtime is needed. Only one badge's
-popover is open at a time.
+so any i18n library works. To distinguish generated from AI-modified content
+(like the EU icons), set `introGenerated` and `introModified`: the popover
+picks `introGenerated` for `trainedAlgorithmicMedia` and `introModified` for
+composite AI types; without them `intro` is used for both. A small bundled
+script handles opening, closing, Escape and focus return; no Alpine/React
+runtime is needed. Only one badge's popover is open at a time.
 
 ## Source tagging CLI
 
