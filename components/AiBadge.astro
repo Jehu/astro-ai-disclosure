@@ -23,6 +23,10 @@ export interface AiBadgeLabels {
   close: string;
   /** Intro sentence explaining that the image is AI-generated. */
   intro: string;
+  /** Overrides `intro` when the digital source type denotes generation. */
+  introGenerated?: string;
+  /** Overrides `intro` when the digital source type denotes AI modification. */
+  introModified?: string;
   /** Row label for the creator, e.g. "Erstellt mit". */
   createdWith: string;
   /** Row label for the date, e.g. "Erstellt am". */
@@ -41,6 +45,14 @@ interface Props {
 }
 
 const { credentials, labels, locale = 'de-DE', mark = 'AI' } = Astro.props;
+/** `generated` for trainedAlgorithmicMedia, `modified` for composite AI types. */
+const variant = (() => {
+  const local = (credentials?.digitalSourceType ?? '').split(/[/#]/).pop();
+  return local === 'trainedAlgorithmicMedia' ? 'generated' : 'modified';
+})();
+const intro = variant === 'generated'
+  ? (labels.introGenerated ?? labels.intro)
+  : (labels.introModified ?? labels.intro);
 const createdOn = formatCreatedAt(credentials?.createdAt, locale);
 const id = `ai-badge-${Math.random().toString(36).slice(2, 9)}`;
 ---
@@ -70,7 +82,7 @@ const id = `ai-badge-${Math.random().toString(36).slice(2, 9)}`;
           </button>
         </div>
 
-        <p class="ai-badge__intro">{labels.intro}</p>
+        <p class="ai-badge__intro">{intro}</p>
 
         {(credentials.creator || createdOn) && (
           <dl class="ai-badge__list">
