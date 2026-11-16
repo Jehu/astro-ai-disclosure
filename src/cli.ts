@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 // CLI: write or verify the AI disclosure in source images.
 //
-//   astro-ai-disclosure tag <file>... [--json allowlist.json] [--system "…"] [--rights "…"] [--description "…"]
-//   astro-ai-disclosure check <file|dir>...
+//   astro-ai-disclosure tag <file>... [--json allowlist.json] [--source-type <type>] [--system "…"] [--rights "…"] [--description "…"]
 //
 // Safety: `tag` NEVER walks directories — it only touches explicitly named
 // image files (or files listed in an explicit JSON allowlist array), so a
@@ -13,6 +12,7 @@
 
 import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { DIGITAL_SOURCE_TYPE } from 'aeo-image';
 import { readAiCredentialsFromBuffer } from './credentials.js';
 import { tagAiImage } from './xmp.js';
 
@@ -20,12 +20,13 @@ const IMAGE_RE = /\.(jpe?g|png|webp|avif)$/i;
 
 const USAGE = [
   'Usage:',
-  '  astro-ai-disclosure tag <file>... [--json allowlist.json] [--system "…"] [--rights "…"] [--description "…"]',
+  '  astro-ai-disclosure tag <file>... [--json allowlist.json] [--source-type <type>] [--system "…"] [--rights "…"] [--description "…"]',
   '  astro-ai-disclosure check <file|dir>...',
   '',
-  'tag only touches explicitly named image files (or paths listed in the JSON',
-  'array given via --json); directories are rejected. check is read-only and',
-  'walks directories recursively for .jpg/.jpeg/.png/.webp/.avif.',
+  '--source-type: short name from DIGITAL_SOURCE_TYPE (trainedAlgorithmicMedia,',
+  'compositeWithTrainedAlgorithmicMedia, compositeSynthetic) or a full',
+  'http://cv.iptc.org/newscodes/digitalsourcetype/… URI. Defaults to',
+  'trainedAlgorithmicMedia.',
 ].join('\n');
 
 /** Read-only recursive walk for `check`; explicit files pass through unchanged. */
@@ -80,7 +81,18 @@ interface Args {
   options: Record<string, string>;
 }
 
-const KNOWN_FLAGS: Record<string, true> = { system: true, rights: true, description: true, json: true };
+const KNOWN_FLAGS: Record<string, true> = { system: true, rights: true, description: true, json: true, 'source-type': true };
+const SOURCE_TYPE_URIS = new Set<string>(Object.values(DIGITAL_SOURCE_TYPE));
+
+/** Resolve a --source-type value (short name or full IPTC URI) to its URI. */
+function resolveSourceType(value: string): string {
+  if (SOURCE_TYPE_URIS.has(value)) return value;
+  const uri = DIGITAL_SOURCE_TYPE[value as keyof typeof DIGITAL_SOURCE_TYPE];
+  if (uri !== undefined) return uri;
+  throw new Error(
+    `unknown --source-type: ${value} (expected one of ${Object.keys(DIGITAL_SOURCE_TYPE).join(', ')} or a full digitalsourcetype URI)`,
+  );
+}
 
 function parseArgs(argv: string[]): Args {
   const [command, ...rest] = argv;
@@ -143,7 +155,17 @@ async function main() {
   for (const file of files) {
     const buffer = await readFile(file);
     if (command === 'tag') {
+      let sourceType: string | undefined;
+      if (options['source-type'] !== undefined) {
+        try {
+          sourceType = resolveSourceType(options['source-type']);
+        } catch (error) {
+          console.error(`${(error as Error).message}\n\n${USAGE}`);
+          process.exit(2);
+        }
+      }
       const { result, buffer: output } = tagAiImage(buffer, {
+        digitalSourceType: sourceType,
         system: options.system,
         rights: options.rights,
         description: options.description,
