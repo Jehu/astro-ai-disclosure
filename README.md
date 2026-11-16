@@ -66,8 +66,11 @@ imports can cause unused originals to appear in the build output.
 
 The reader returns `{ digitalSourceType, provenance, creator?, createdAt?,
 description?, rights? }` or `null`. `provenance` is `xmp` or `c2pa`, **not** an
-assertion that a signature was validated. Missing creation dates are left
-absent, never substituted with signing or build time.
+assertion that a signature was validated. For C2PA images, `createdAt` comes
+from the manifest's `c2pa.created` action or — when that carries no timestamp
+— from the RFC 3161 TimeStampToken countersigning the signature (a
+third-party TSA time, not the generator's own claim). When neither exists the
+field stays absent; it is never substituted with build time.
 
 For a component with a declared AI/non-AI intent:
 
@@ -163,8 +166,8 @@ manifest's source-type declaration as IPTC XMP in derivatives. It does not
 sign derivatives or claim a cryptographic provenance chain.
 
 Verified against OpenAI GPT-4o/gpt-image and Google Generative AI manifests.
-OpenAI commonly states a model and creation date; Google may state only the
-service name. A source without those fields still carries the source type.
+service name, in which case `createdAt` falls back to the RFC 3161 signature
+timestamp. A source without those fields still carries the source type.
 Use `c2patool <source>` to validate signatures separately.
 
 ## Development
