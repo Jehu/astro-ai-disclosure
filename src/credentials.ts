@@ -58,17 +58,22 @@ export async function readAiCredentialsFromFile(absolutePath: string): Promise<A
  *
  * The glob must be evaluated in project code: Vite resolves it at build time
  * relative to the project root, which a package cannot do on its own.
+ *
+ * Images are matched by their emitted URL (`src`), not object identity:
+ * content-collection `image()` fields yield their own `ImageMetadata` object
+ * for the same file, which an identity lookup would miss. Same `src` means
+ * the same source file, so the decision still rests on its metadata alone.
  */
 export function createCredentialReader(
   modules: Record<string, ImageMetadata>,
   projectRoot: string = process.cwd(),
 ): (image: ImageMetadata) => Promise<AiCredentials | null> {
-  const fileOf = new Map<ImageMetadata, string>();
+  const fileOf = new Map<string, string>();
   for (const [relative, image] of Object.entries(modules)) {
-    fileOf.set(image, path.join(projectRoot, relative.replace(/^\//, '')));
+    fileOf.set(image.src, path.join(projectRoot, relative.replace(/^\//, '')));
   }
   return async (image) => {
-    const file = fileOf.get(image);
+    const file = fileOf.get(image.src);
     return file ? readAiCredentialsFromFile(file) : null;
   };
 }

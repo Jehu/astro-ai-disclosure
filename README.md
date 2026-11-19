@@ -64,6 +64,10 @@ export const readAiCredentials = createCredentialReader(
 Exclude backup directories explicitly if they live under the glob. Eager image
 imports can cause unused originals to appear in the build output.
 
+Images are matched by their emitted URL (`src`), so content-collection
+`image()` fields work too: they yield their own `ImageMetadata` object for the
+same file.
+
 The reader returns `{ digitalSourceType, provenance, creator?, createdAt?,
 description?, rights? }` or `null`. `provenance` is `xmp` or `c2pa`, **not** an
 assertion that a signature was validated. For C2PA images, `createdAt` comes

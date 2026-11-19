@@ -17,7 +17,8 @@ APIs — check `test/` and the README before renaming.
   IPTC types count as AI involvement.
 - `credentials.ts` — build-time lookup behind `astro:assets` imports:
   XMP first, then C2PA. `null` = no AI credentials; callers must not
-  render a badge then.
+  render a badge then. `createCredentialReader` maps images by `src`,
+  never object identity (content collections yield separate objects).
 - `image-service.ts` — Sharp-based `LocalImageService` that re-emits the
   source's digital source type into derivatives; reuses an existing
   matching XMP packet instead of rewriting.
