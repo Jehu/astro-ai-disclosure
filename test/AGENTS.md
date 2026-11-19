@@ -12,6 +12,8 @@ are binary ground truth; never regenerate them from the code under test.
   exit codes.
 - `c2pa-timestamp.test.mjs` — RFC 3161 `createdAt` fallback and
   `isoGeneralizedTime` parsing.
+- `credential-reader.test.mjs` — `createCredentialReader` matches by
+  `src` (collection-style copies), plain files and unknown `src` → `null`.
 - `fixtures/` — synthetic images with known XMP (`xmp-legacy.jpg`,
   `xmp-varprefix.xml`), plain untagged files, and real C2PA manifests
   (OpenAI, Google, Google composite, timestamped). See `fixtures/README.md`.
